@@ -1,0 +1,4 @@
+[package]
+name = "multiset"
+version = "0.0.1"
+authors = ["Jake Mitchell <jacob.d.mitchell@gmail.com>"]
