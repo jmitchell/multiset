@@ -2,3 +2,9 @@
 name = "multiset"
 version = "0.0.1"
 authors = ["Jake Mitchell <jacob.d.mitchell@gmail.com>"]
+
+[package]
+description = "Multisets/bags"
+license = "Apache-2.0"
+repository = "https://github.com/jmitchell/multiset"
+keywords = ["multiset","bag","data-structure","collection","count"]
