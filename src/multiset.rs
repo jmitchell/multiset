@@ -1,14 +1,16 @@
 use std::collections::{HashMap};
 use std::collections::hash_map::{Entry,Keys};
 use std::hash::{Hash};
+use std::ops::{Add};
 
 /// A hash-based multiset.
-pub struct HashMultiSet<K> {
+pub struct HashMultiSet<K>
+{
     elem_counts: HashMap<K, usize>
 }
 
 impl<K> HashMultiSet<K> where
-    K: Eq + Hash + Clone
+    K: Eq + Hash
 {
     /// Creates a new empty `HashMultiSet`.
     ///
@@ -134,5 +136,41 @@ impl<K> HashMultiSet<K> where
         self.elem_counts
             .get(&val)
             .map_or(0, |x| *x)
+    }
+}
+
+impl<T> Add for HashMultiSet<T> where
+    T: Eq + Hash + Clone
+{
+    type Output = HashMultiSet<T>;
+
+    /// Combine two `HashMultiSet`s by adding the number of each
+    /// distinct element.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    ///
+    /// let combined = HashMultiSet::from_vec(vec![1,2,3]) + HashMultiSet::from_vec(vec![1,1,4]);
+    /// assert_eq!(3, combined.count_of(1));
+    /// assert_eq!(1, combined.count_of(2));
+    /// assert_eq!(1, combined.count_of(3));
+    /// assert_eq!(1, combined.count_of(4));
+    /// assert_eq!(0, combined.count_of(5));
+    /// ```
+    fn add(self, rhs: HashMultiSet<T>) ->  HashMultiSet<T> {
+        let mut ret: HashMultiSet<T> = HashMultiSet::new();
+        for val in self.distinct_elements() {
+            for _ in 0..(self.count_of((*val).clone())) {
+                ret.insert((*val).clone());
+            }
+        }
+        for val in rhs.distinct_elements() {
+            for _ in 0..(rhs.count_of((*val).clone())) {
+                ret.insert((*val).clone());
+            }
+        }
+        ret
     }
 }
