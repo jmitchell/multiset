@@ -1,6 +1,7 @@
 use std::collections::{HashMap};
 use std::collections::hash_map::{Entry,Keys};
 use std::hash::{Hash};
+use std::iter::{FromIterator,IntoIterator};
 use std::ops::{Add};
 
 /// A hash-based multiset.
@@ -25,26 +26,6 @@ impl<K> HashMultiSet<K> where
         HashMultiSet { elem_counts: HashMap::new() }
     }
 
-    /// Creates a new `HashMultiSet` from the elements in a `Vec`.
-    ///
-    /// # Examples
-    ///
-    /// Count occurrences of each `char` in `"hello world"`:
-    ///
-    /// ```
-    /// use multiset::HashMultiSet;
-    ///
-    /// let vals = vec!['h','e','l','l','o',' ','w','o','r','l','d'];
-    /// let multiset = HashMultiSet::from_vec(vals);
-    /// ```
-    pub fn from_vec(v: Vec<K>) -> Self {
-        let mut multiset = HashMultiSet::new();
-        for elem in v {
-            multiset.insert(elem);
-        }
-        multiset
-    }
-
     /// Counts all the elements, including each duplicate.
     ///
     /// # Examples
@@ -62,8 +43,9 @@ impl<K> HashMultiSet<K> where
     ///
     /// ```
     /// use multiset::HashMultiSet;
+    /// use std::iter::FromIterator;
     ///
-    /// let multiset = HashMultiSet::from_vec(vec![1,1,2]);
+    /// let multiset: HashMultiSet<i32> = FromIterator::from_iter(vec![1,1,2]);
     /// assert_eq!(3, multiset.total_elements());
     /// ```
     pub fn total_elements(&self) -> usize {
@@ -82,8 +64,9 @@ impl<K> HashMultiSet<K> where
     /// ```
     /// use multiset::HashMultiSet;
     /// use std::collections::HashSet;
+    /// use std::iter::FromIterator;
     ///
-    /// let multiset = HashMultiSet::from_vec(vec![1,1,2]);
+    /// let multiset: HashMultiSet<i64> = FromIterator::from_iter(vec![1,1,2]);
     /// let distinct = multiset.distinct_elements().collect::<HashSet<_>>();
     /// assert_eq!(2, distinct.len());
     /// assert!(distinct.contains(&1));
@@ -99,13 +82,15 @@ impl<K> HashMultiSet<K> where
     ///
     /// # Examples
     ///
-    /// Insert `1` into a new `HashMultiSet`:
+    /// Insert `5` into a new `HashMultiSet`:
     ///
     /// ```
     /// use multiset::HashMultiSet;
     ///
     /// let mut multiset: HashMultiSet<i32> = HashMultiSet::new();
-    /// multiset.insert(1);
+    /// assert_eq!(0, multiset.count_of(5));
+    /// multiset.insert(5);
+    /// assert_eq!(1, multiset.count_of(5));
     /// ```
     pub fn insert(&mut self, val: K) {
         match self.elem_counts.entry(val) {
@@ -126,11 +111,13 @@ impl<K> HashMultiSet<K> where
     /// ```
     /// use multiset::HashMultiSet;
     ///
-    /// let vals = vec!['h','e','l','l','o',' ','w','o','r','l','d'];
-    /// let multiset = HashMultiSet::from_vec(vals);
-    /// assert_eq!(1, multiset.count_of('h'));
-    /// assert_eq!(3, multiset.count_of('l'));
-    /// assert_eq!(0, multiset.count_of('z'));
+    /// let mut multiset: HashMultiSet<u8> = HashMultiSet::new();
+    /// multiset.insert(0);
+    /// multiset.insert(0);
+    /// multiset.insert(1);
+    /// multiset.insert(0);
+    /// assert_eq!(3, multiset.count_of(0));
+    /// assert_eq!(1, multiset.count_of(1));
     /// ```
     pub fn count_of(&self, val: K) -> usize {
         self.elem_counts
@@ -151,8 +138,11 @@ impl<T> Add for HashMultiSet<T> where
     ///
     /// ```
     /// use multiset::HashMultiSet;
+    /// use std::iter::FromIterator;
     ///
-    /// let combined = HashMultiSet::from_vec(vec![1,2,3]) + HashMultiSet::from_vec(vec![1,1,4]);
+    /// let lhs: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
+    /// let rhs: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
+    /// let combined = lhs + rhs;
     /// assert_eq!(3, combined.count_of(1));
     /// assert_eq!(1, combined.count_of(2));
     /// assert_eq!(1, combined.count_of(3));
@@ -172,5 +162,36 @@ impl<T> Add for HashMultiSet<T> where
             }
         }
         ret
+    }
+}
+
+impl<A> FromIterator<A> for HashMultiSet<A> where
+    A: Eq + Hash + Clone
+{
+    /// Creates a new `HashMultiSet` from the elements in an iterable.
+    ///
+    /// # Examples
+    ///
+    /// Count occurrences of each `char` in `"hello world"`:
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    /// use std::iter::FromIterator;
+    ///
+    /// let vals = vec!['h','e','l','l','o',' ','w','o','r','l','d'];
+    /// let multiset: HashMultiSet<char> = FromIterator::from_iter(vals);
+    /// assert_eq!(1, multiset.count_of('h'));
+    /// assert_eq!(3, multiset.count_of('l'));
+    /// assert_eq!(0, multiset.count_of('z'));
+    /// ```
+    fn from_iter<T>(iterable: T) -> HashMultiSet<A> where
+        T: IntoIterator<Item=A>
+    {
+        let iterator = iterable.into_iter();
+        let mut multiset: HashMultiSet<A> = HashMultiSet::new();
+        for elem in iterator {
+            multiset.insert(elem);
+        }
+        multiset
     }
 }
