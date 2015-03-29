@@ -1,40 +1,111 @@
-#![allow(dead_code)]
-
 use std::collections::{HashMap};
 use std::collections::hash_map::{Entry,Keys};
 use std::hash::{Hash};
 
-struct HashMultiSet<K> {
+/// A hash-based multiset.
+pub struct HashMultiSet<K> {
     elem_counts: HashMap<K, usize>
 }
 
 impl<K> HashMultiSet<K> where
     K: Eq + Hash + Clone
 {
-    fn new() -> Self {
+    /// Creates a new empty `HashMultiSet`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    ///
+    /// let multiset: HashMultiSet<char> = HashMultiSet::new();
+    /// ```
+    pub fn new() -> Self {
         HashMultiSet { elem_counts: HashMap::new() }
     }
 
-    fn from_vec(v: Vec<K>) -> Self {
+    /// Creates a new `HashMultiSet` from the elements in a `Vec`.
+    ///
+    /// # Examples
+    ///
+    /// Count occurrences of each `char` in `"hello world"`:
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    ///
+    /// let vals = vec!['h','e','l','l','o',' ','w','o','r','l','d'];
+    /// let multiset = HashMultiSet::from_vec(vals);
+    /// ```
+    pub fn from_vec(v: Vec<K>) -> Self {
         let mut multiset = HashMultiSet::new();
         for elem in v {
-            multiset.add(elem);
+            multiset.insert(elem);
         }
         multiset
     }
 
-    fn total_elements(&self) -> usize {
+    /// Counts all the elements, including each duplicate.
+    ///
+    /// # Examples
+    ///
+    /// A new empty `HashMultiSet` with 0 total elements:
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    ///
+    /// let multiset: HashMultiSet<char> = HashMultiSet::new();
+    /// assert_eq!(0, multiset.total_elements());
+    /// ```
+    ///
+    /// A `HashMultiSet` from `vec![1,1,2]` has 3 total elements:
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    ///
+    /// let multiset = HashMultiSet::from_vec(vec![1,1,2]);
+    /// assert_eq!(3, multiset.total_elements());
+    /// ```
+    pub fn total_elements(&self) -> usize {
         self.elem_counts
             .values()
             .fold(0, |a,b| a + *b)
     }
 
-    fn distinct_elements<'a>(&'a self) -> Keys<'a, K, usize> {
+    /// Returns all the distinct elements in the `HashMultiSet`.
+    ///
+    /// # Examples
+    ///
+    /// A `HashMultiSet` from `vec![1,1,2]` has 2 distinct elements,
+    /// namely `1` and `2`, but not `3`:
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    /// use std::collections::HashSet;
+    ///
+    /// let multiset = HashMultiSet::from_vec(vec![1,1,2]);
+    /// let distinct = multiset.distinct_elements().collect::<HashSet<_>>();
+    /// assert_eq!(2, distinct.len());
+    /// assert!(distinct.contains(&1));
+    /// assert!(distinct.contains(&2));
+    /// assert!(!distinct.contains(&3));
+    /// ```
+    pub fn distinct_elements<'a>(&'a self) -> Keys<'a, K, usize> {
         self.elem_counts
             .keys()
     }
 
-    fn add(&mut self, val: K) {
+    /// Inserts an element.
+    ///
+    /// # Examples
+    ///
+    /// Insert `1` into a new `HashMultiSet`:
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    ///
+    /// let mut multiset: HashMultiSet<i32> = HashMultiSet::new();
+    /// multiset.insert(1);
+    /// ```
+    pub fn insert(&mut self, val: K) {
         match self.elem_counts.entry(val) {
             Entry::Vacant(view) => {
                 view.insert(1);
@@ -46,45 +117,22 @@ impl<K> HashMultiSet<K> where
         }
     }
 
-    fn count_of(&self, val: K) -> usize {
+    /// Counts the occurrences of `val`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    ///
+    /// let vals = vec!['h','e','l','l','o',' ','w','o','r','l','d'];
+    /// let multiset = HashMultiSet::from_vec(vals);
+    /// assert_eq!(1, multiset.count_of('h'));
+    /// assert_eq!(3, multiset.count_of('l'));
+    /// assert_eq!(0, multiset.count_of('z'));
+    /// ```
+    pub fn count_of(&self, val: K) -> usize {
         self.elem_counts
             .get(&val)
             .map_or(0, |x| *x)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{HashMultiSet};
-
-    #[test]
-    fn new_multiset_is_empty() {
-        let multiset: HashMultiSet<char> = HashMultiSet::new();
-
-        assert_eq!(0, multiset.total_elements());
-        assert_eq!(0, multiset.distinct_elements().len());
-    }
-
-    #[test]
-    fn multiset_with_one_element() {
-        let mut multiset: HashMultiSet<char> = HashMultiSet::new();
-        multiset.add('a');
-
-        assert_eq!(1, multiset.total_elements());
-        assert_eq!(1, multiset.distinct_elements().len());
-        assert_eq!(1, multiset.count_of('a'));
-        assert_eq!(0, multiset.count_of('z'));
-    }
-
-    #[test]
-    fn multiset_from_vec() {
-        let v = vec!['a', 'b', 'c',
-                     'a',      'c',
-                     'a'          ];
-        let ms = HashMultiSet::from_vec(v);
-
-        assert_eq!(3, ms.count_of('a'));
-        assert_eq!(1, ms.count_of('b'));
-        assert_eq!(2, ms.count_of('c'));
     }
 }
