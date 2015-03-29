@@ -1,18 +1,26 @@
 #![allow(dead_code)]
 
 use std::collections::{HashMap};
-use std::collections::hash_map::{Entry};
+use std::collections::hash_map::{Entry,Keys};
 use std::hash::{Hash};
 
-struct MultiSet<K> {
+struct HashMultiSet<K> {
     elem_counts: HashMap<K, usize>
 }
 
-impl<K> MultiSet<K> where
+impl<K> HashMultiSet<K> where
     K: Eq + Hash + Clone
 {
     fn new() -> Self {
-        MultiSet { elem_counts: HashMap::new() }
+        HashMultiSet { elem_counts: HashMap::new() }
+    }
+
+    fn from_vec(v: Vec<K>) -> Self {
+        let mut multiset = HashMultiSet::new();
+        for elem in v {
+            multiset.add(elem);
+        }
+        multiset
     }
 
     fn total_elements(&self) -> usize {
@@ -21,12 +29,9 @@ impl<K> MultiSet<K> where
             .fold(0, |a,b| a + *b)
     }
 
-    fn distinct_elements(&self) -> Vec<K> {
-        // TODO: try refactoring to avoid clone
+    fn distinct_elements<'a>(&'a self) -> Keys<'a, K, usize> {
         self.elem_counts
             .keys()
-            .map(|x| (*x).clone())
-            .collect()
     }
 
     fn add(&mut self, val: K) {
@@ -46,23 +51,15 @@ impl<K> MultiSet<K> where
             .get(&val)
             .map_or(0, |x| *x)
     }
-
-    fn from_vec(v: Vec<K>) -> Self {
-        let mut multiset = MultiSet::new();
-        for elem in v {
-            multiset.add(elem);
-        }
-        multiset
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{MultiSet};
+    use super::{HashMultiSet};
 
     #[test]
     fn new_multiset_is_empty() {
-        let multiset: MultiSet<char> = MultiSet::new();
+        let multiset: HashMultiSet<char> = HashMultiSet::new();
 
         assert_eq!(0, multiset.total_elements());
         assert_eq!(0, multiset.distinct_elements().len());
@@ -70,7 +67,7 @@ mod tests {
 
     #[test]
     fn multiset_with_one_element() {
-        let mut multiset: MultiSet<char> = MultiSet::new();
+        let mut multiset: HashMultiSet<char> = HashMultiSet::new();
         multiset.add('a');
 
         assert_eq!(1, multiset.total_elements());
@@ -84,7 +81,7 @@ mod tests {
         let v = vec!['a', 'b', 'c',
                      'a',      'c',
                      'a'          ];
-        let ms = MultiSet::from_vec(v);
+        let ms = HashMultiSet::from_vec(v);
 
         assert_eq!(3, ms.count_of('a'));
         assert_eq!(1, ms.count_of('b'));
