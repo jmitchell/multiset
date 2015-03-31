@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+
 use std::collections::{HashMap};
 use std::collections::hash_map::{Entry,Keys};
 use std::hash::{Hash};
@@ -93,14 +95,32 @@ impl<K> HashMultiSet<K> where
     /// assert_eq!(1, multiset.count_of(5));
     /// ```
     pub fn insert(&mut self, val: K) {
+        self.insert_times(val, 1);
+    }
+
+    /// Inserts an element `n` times.
+    ///
+    /// # Examples
+    ///
+    /// Insert three `5`s into a new `HashMultiSet`:
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    ///
+    /// let mut multiset: HashMultiSet<i32> = HashMultiSet::new();
+    /// assert_eq!(0, multiset.count_of(5));
+    /// multiset.insert_times(5,3);
+    /// assert_eq!(3, multiset.count_of(5));
+    /// ```
+    pub fn insert_times(&mut self, val: K, n: usize) {
         match self.elem_counts.entry(val) {
             Entry::Vacant(view) => {
-                view.insert(1);
+                view.insert(n);
             },
             Entry::Occupied(mut view) => {
                 let v = view.get_mut();
-                *v += 1;
-            }
+                *v += n;
+            },
         }
     }
 
@@ -152,21 +172,19 @@ impl<T> Add for HashMultiSet<T> where
     fn add(self, rhs: HashMultiSet<T>) ->  HashMultiSet<T> {
         let mut ret: HashMultiSet<T> = HashMultiSet::new();
         for val in self.distinct_elements() {
-            for _ in 0..(self.count_of((*val).clone())) {
-                ret.insert((*val).clone());
-            }
+            let count = self.count_of((*val).clone());
+            ret.insert_times((*val).clone(), count);
         }
         for val in rhs.distinct_elements() {
-            for _ in 0..(rhs.count_of((*val).clone())) {
-                ret.insert((*val).clone());
-            }
+            let count = rhs.count_of((*val).clone());
+            ret.insert_times((*val).clone(), count);
         }
         ret
     }
 }
 
 impl<A> FromIterator<A> for HashMultiSet<A> where
-    A: Eq + Hash + Clone
+    A: Eq + Hash
 {
     /// Creates a new `HashMultiSet` from the elements in an iterable.
     ///
@@ -187,9 +205,8 @@ impl<A> FromIterator<A> for HashMultiSet<A> where
     fn from_iter<T>(iterable: T) -> HashMultiSet<A> where
         T: IntoIterator<Item=A>
     {
-        let iterator = iterable.into_iter();
         let mut multiset: HashMultiSet<A> = HashMultiSet::new();
-        for elem in iterator {
+        for elem in iterable.into_iter() {
             multiset.insert(elem);
         }
         multiset
