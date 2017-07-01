@@ -4,7 +4,7 @@ use std::collections::{HashMap};
 use std::collections::hash_map::{Entry,Keys};
 use std::hash::{Hash};
 use std::iter::{FromIterator,IntoIterator};
-use std::ops::{Add, Sub};
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 /// A hash-based multiset.
 #[derive(Clone)]
@@ -264,6 +264,34 @@ impl<T> Add for HashMultiSet<T> where
     }
 }
 
+impl<T> AddAssign for HashMultiSet<T> where
+    T: Eq + Hash + Clone
+{
+    /// Insert the elements of one `HashMultiSet` into another.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    /// use std::iter::FromIterator;
+    ///
+    /// let mut lhs: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
+    /// let rhs: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
+    /// lhs += rhs;
+    /// assert_eq!(3, lhs.count_of(1));
+    /// assert_eq!(1, lhs.count_of(2));
+    /// assert_eq!(1, lhs.count_of(3));
+    /// assert_eq!(1, lhs.count_of(4));
+    /// assert_eq!(0, lhs.count_of(5));
+    /// ```
+    fn add_assign(&mut self, rhs: HashMultiSet<T>) {
+        for val in rhs.distinct_elements() {
+            let count = rhs.count_of((*val).clone());
+            self.insert_times((*val).clone(), count);
+        }
+    }
+}
+
 impl<T> Sub for HashMultiSet<T> where
     T: Eq + Hash + Clone
 {
@@ -295,6 +323,34 @@ impl<T> Sub for HashMultiSet<T> where
             ret.remove_times((*val).clone(), count);
         }
         ret
+    }
+}
+
+impl<T> SubAssign for HashMultiSet<T> where
+    T: Eq + Hash + Clone
+{
+    /// Remove the elements of one `HashMultiSet` from another
+    /// using `-`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    /// use std::iter::FromIterator;
+    ///
+    /// let mut lhs: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
+    /// let rhs: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
+    /// lhs -= rhs;
+    /// assert_eq!(0, lhs.count_of(1));
+    /// assert_eq!(1, lhs.count_of(2));
+    /// assert_eq!(1, lhs.count_of(3));
+    /// assert_eq!(0, lhs.count_of(4));
+    /// ```
+    fn sub_assign(&mut self, rhs: HashMultiSet<T>) {
+        for val in rhs.distinct_elements() {
+            let count = rhs.count_of((*val).clone());
+            self.remove_times((*val).clone(), count);
+        }
     }
 }
 
