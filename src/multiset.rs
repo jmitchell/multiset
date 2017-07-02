@@ -5,6 +5,7 @@ use std::collections::hash_map::{Entry,Keys};
 use std::hash::{Hash};
 use std::iter::{FromIterator,IntoIterator};
 use std::ops::{Add, AddAssign, Sub, SubAssign};
+use std::cmp::Ordering;
 
 /// A hash-based multiset.
 #[derive(Clone)]
@@ -352,6 +353,165 @@ impl<T> SubAssign for HashMultiSet<T> where
             self.remove_times((*val).clone(), count);
         }
     }
+}
+
+
+impl<T> PartialEq for HashMultiSet<T> where
+    T: Eq + Hash + Clone
+{
+    /// The obvious definition of equality: exactly the
+    /// same number of the same elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    /// use std::iter::FromIterator;
+    ///
+    /// let s1: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
+    /// let s2: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
+    /// assert!(s1 == s1);
+    /// assert!(s1 != s2);
+    /// ```
+    fn eq(&self, other: &HashMultiSet<T>) -> bool {
+        for val in self.distinct_elements() {
+            if self.count_of(val.clone()) != other.count_of(val.clone()) {
+                return false;
+            };
+        };
+        true
+    }
+}
+
+/// Test the degree to which the RHS is contained by the LHS.
+/// * A result of `Equal` means that the LHS exactly
+/// matches on all RHS elements.
+/// * A result of `Greater` means that the LHS contains
+/// all present RHS elements and overcontains at least one.
+/// * A result of `Less` means only that the containment
+/// does not hold.
+fn lcr<T: Eq + Hash + Clone>(lhs: &HashMultiSet<T>,
+                             rhs: &HashMultiSet<T>) -> Ordering
+{
+    let mut result = Ordering::Equal;
+    for val in rhs.distinct_elements() {
+        let nlhs = lhs.count_of(val.clone());
+        if nlhs == 0 {
+            return Ordering::Less;
+        };
+        let nrhs = rhs.count_of(val.clone());
+        if nrhs > nlhs {
+            return Ordering::Less;
+        } else if nrhs < nlhs {
+            result = Ordering::Greater;
+        };
+    };
+    result
+}
+
+#[test]
+fn test_lcr() {
+    let s1: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
+    let s2: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
+    let s3: HashMultiSet<isize> = FromIterator::from_iter(vec![2,3]);
+    let s4: HashMultiSet<isize> = FromIterator::from_iter(vec![1,4]);
+    assert_eq!(Ordering::Equal, lcr(&s1, &s1));
+    assert_eq!(Ordering::Less, lcr(&s1, &s2));
+    assert_eq!(Ordering::Less, lcr(&s2, &s1));
+    assert_eq!(Ordering::Equal, lcr(&s1, &s3));
+    assert_eq!(Ordering::Less, lcr(&s3, &s1));
+    assert_eq!(Ordering::Greater, lcr(&s2, &s4));
+}
+
+impl<T> PartialOrd for HashMultiSet<T> where
+    T: Eq + Hash + Clone
+{
+    /// MultiSets are partial-ordered by containment: if they
+    /// are equal, they are `Equal`; if one is a proper subset
+    /// of the other they are `Less` or `Greater`; otherwise
+    /// they are unordered.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    /// use std::iter::FromIterator;
+    /// use std::cmp::Ordering;
+    ///
+    /// let s1: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
+    /// let s2: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
+    /// let s3: HashMultiSet<isize> = FromIterator::from_iter(vec![2,3]);
+    /// let s4: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,2,3]);
+    /// assert_eq!(None, s1.partial_cmp(&s2));
+    /// assert_eq!(Some(Ordering::Less), s3.partial_cmp(&s1));    
+    /// assert_eq!(Some(Ordering::Less), s1.partial_cmp(&s4));
+    /// assert_eq!(Some(Ordering::Greater), s1.partial_cmp(&s3));
+    /// assert_eq!(Some(Ordering::Equal), s1.partial_cmp(&s1));
+    /// assert_eq!(Some(Ordering::Greater), s4.partial_cmp(&s1));
+    /// ```
+    fn partial_cmp(&self, other: &HashMultiSet<T>) -> Option<Ordering> {
+        match lcr(self, other) {
+            Ordering::Less => {
+                match lcr(other, self) {
+                    Ordering::Less => None,
+                    _ => Some(Ordering::Less)
+                }
+            },
+            Ordering::Equal => {
+                match lcr(other, self) {
+                    Ordering::Less => Some(Ordering::Greater),
+                    Ordering::Equal => Some(Ordering::Equal),
+                    Ordering::Greater => panic!("=> ordering observed")
+                }
+            },
+            Ordering::Greater => Some(Ordering::Greater)
+        }
+    }
+
+    /// The RHS contains the LHS. This is computed more efficiently
+    /// than with `partial_cmp()` in some cases.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    /// use std::iter::FromIterator;
+    ///
+    /// let s1: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
+    /// let s2: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
+    /// let s3: HashMultiSet<isize> = FromIterator::from_iter(vec![2,3]);
+    /// assert!(s1 <= s1);
+    /// assert!(s3 <= s1);
+    /// assert!(!(s1 <= s2));
+    /// assert!(!(s2 <= s1));
+    /// assert!(!(s1 <= s3));
+    /// ```
+    fn le(&self, other: &HashMultiSet<T>) -> bool {
+        lcr(other, self) != Ordering::Less
+    }
+
+    /// The LHS contains the RHS. This is computed more efficiently
+    /// than with `partial_cmp()` in some cases.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    /// use std::iter::FromIterator;
+    ///
+    /// let s1: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
+    /// let s2: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
+    /// let s3: HashMultiSet<isize> = FromIterator::from_iter(vec![2,3]);
+    /// assert!(s1 >= s1);
+    /// assert!(s1 >= s3);
+    /// assert!(!(s2 >= s1));
+    /// assert!(!(s1 >= s2));
+    /// assert!(!(s3 >= s1));
+    /// ```
+    fn ge(&self, other: &HashMultiSet<T>) -> bool {
+        lcr(self, other) != Ordering::Less
+    }
+
 }
 
 impl<A> FromIterator<A> for HashMultiSet<A> where
