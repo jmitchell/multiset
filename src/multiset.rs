@@ -370,11 +370,19 @@ impl<T> PartialEq for HashMultiSet<T> where
     ///
     /// let s1: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
     /// let s2: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
+    /// let s3: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2]);
     /// assert!(s1 == s1);
     /// assert!(s1 != s2);
+    /// assert!(s1 != s3);
+    /// assert!(s3 != s1);
     /// ```
     fn eq(&self, other: &HashMultiSet<T>) -> bool {
         for val in self.distinct_elements() {
+            if self.count_of(val.clone()) != other.count_of(val.clone()) {
+                return false;
+            };
+        };
+        for val in other.distinct_elements() {
             if self.count_of(val.clone()) != other.count_of(val.clone()) {
                 return false;
             };
@@ -383,6 +391,8 @@ impl<T> PartialEq for HashMultiSet<T> where
     }
 }
 
+impl <T> Eq for HashMultiSet<T> where T: Eq + Hash + Clone {}
+
 /// Test the degree to which the RHS is contained by the LHS.
 /// * A result of `Equal` means that the LHS exactly
 /// matches on all RHS elements.
@@ -390,8 +400,9 @@ impl<T> PartialEq for HashMultiSet<T> where
 /// all present RHS elements and overcontains at least one.
 /// * A result of `Less` means only that the containment
 /// does not hold.
-fn lcr<T: Eq + Hash + Clone>(lhs: &HashMultiSet<T>,
-                             rhs: &HashMultiSet<T>) -> Ordering
+fn containment<T>(lhs: &HashMultiSet<T>,
+                  rhs: &HashMultiSet<T>) -> Ordering
+    where T: Eq + Hash + Clone
 {
     let mut result = Ordering::Equal;
     for val in rhs.distinct_elements() {
@@ -410,17 +421,17 @@ fn lcr<T: Eq + Hash + Clone>(lhs: &HashMultiSet<T>,
 }
 
 #[test]
-fn test_lcr() {
+fn test_containment() {
     let s1: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
     let s2: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
     let s3: HashMultiSet<isize> = FromIterator::from_iter(vec![2,3]);
     let s4: HashMultiSet<isize> = FromIterator::from_iter(vec![1,4]);
-    assert_eq!(Ordering::Equal, lcr(&s1, &s1));
-    assert_eq!(Ordering::Less, lcr(&s1, &s2));
-    assert_eq!(Ordering::Less, lcr(&s2, &s1));
-    assert_eq!(Ordering::Equal, lcr(&s1, &s3));
-    assert_eq!(Ordering::Less, lcr(&s3, &s1));
-    assert_eq!(Ordering::Greater, lcr(&s2, &s4));
+    assert_eq!(Ordering::Equal, containment(&s1, &s1));
+    assert_eq!(Ordering::Less, containment(&s1, &s2));
+    assert_eq!(Ordering::Less, containment(&s2, &s1));
+    assert_eq!(Ordering::Equal, containment(&s1, &s3));
+    assert_eq!(Ordering::Less, containment(&s3, &s1));
+    assert_eq!(Ordering::Greater, containment(&s2, &s4));
 }
 
 impl<T> PartialOrd for HashMultiSet<T> where
@@ -450,15 +461,15 @@ impl<T> PartialOrd for HashMultiSet<T> where
     /// assert_eq!(Some(Ordering::Greater), s4.partial_cmp(&s1));
     /// ```
     fn partial_cmp(&self, other: &HashMultiSet<T>) -> Option<Ordering> {
-        match lcr(self, other) {
+        match containment(self, other) {
             Ordering::Less => {
-                match lcr(other, self) {
+                match containment(other, self) {
                     Ordering::Less => None,
                     _ => Some(Ordering::Less)
                 }
             },
             Ordering::Equal => {
-                match lcr(other, self) {
+                match containment(other, self) {
                     Ordering::Less => Some(Ordering::Greater),
                     Ordering::Equal => Some(Ordering::Equal),
                     Ordering::Greater => panic!("=> ordering observed")
@@ -487,7 +498,7 @@ impl<T> PartialOrd for HashMultiSet<T> where
     /// assert!(!(s1 <= s3));
     /// ```
     fn le(&self, other: &HashMultiSet<T>) -> bool {
-        lcr(other, self) != Ordering::Less
+        containment(other, self) != Ordering::Less
     }
 
     /// The LHS contains the RHS. This is computed more efficiently
@@ -509,7 +520,7 @@ impl<T> PartialOrd for HashMultiSet<T> where
     /// assert!(!(s3 >= s1));
     /// ```
     fn ge(&self, other: &HashMultiSet<T>) -> bool {
-        lcr(self, other) != Ordering::Less
+        containment(self, other) != Ordering::Less
     }
 
 }
