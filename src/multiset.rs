@@ -1,5 +1,6 @@
 #![warn(missing_docs)]
 
+use std::borrow::{Borrow};
 use std::collections::{HashMap};
 use std::collections::hash_map;
 use std::collections::hash_map::{Entry,Keys};
@@ -113,6 +114,28 @@ impl<K> HashMultiSet<K> where
     /// ```
     pub fn is_empty(&self) -> bool {
         self.elem_counts.is_empty()
+    }
+
+    /// Returns `true` if the multiset contains a value.
+    ///
+    /// The value may be any borrowed form of the set's value type, but
+    /// [`Hash`] and [`Eq`] on the borrowed form *must* match those for
+    /// the value type.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    ///
+    /// let set: HashMultiSet<_> = [1, 2, 3].iter().cloned().collect();
+    /// assert_eq!(set.contains(&1), true);
+    /// assert_eq!(set.contains(&4), false);
+    /// ```
+    pub fn contains<Q: ?Sized>(&self, value: &Q) -> bool
+        where K: Borrow<Q>,
+              Q: Hash + Eq
+    {
+        self.elem_counts.contains_key(value)
     }
 
     /// Counts all the elements, including each duplicate.
@@ -414,6 +437,27 @@ impl<A> FromIterator<A> for HashMultiSet<A> where
         }
         multiset
     }
+}
+
+impl<T> PartialEq for HashMultiSet<T>
+where
+    T: Eq + Hash,
+{
+    fn eq(&self, other: &HashMultiSet<T>) -> bool {
+        if self.len() != other.len() {
+            return false;
+        }
+
+        self.elem_counts.iter().all(|(key, count)| {
+            other.contains(key) && other.elem_counts.get(key).unwrap() == count
+        })
+    }
+}
+
+impl<T> Eq for HashMultiSet<T>
+where
+    T: Eq + Hash,
+{
 }
 
 #[cfg(test)]
