@@ -7,6 +7,7 @@ use std::collections::hash_map::{Entry,Keys};
 use std::hash::{Hash};
 use std::iter::{FromIterator,IntoIterator};
 use std::ops::{Add, Sub};
+use std::fmt;
 
 /// A hash-based multiset.
 #[derive(Clone)]
@@ -460,6 +461,15 @@ where
 {
 }
 
+impl<T> fmt::Debug for HashMultiSet<T>
+where
+    T: Eq + Hash + fmt::Debug
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_set().entries(self.iter()).finish()
+    }
+}
+
 #[cfg(test)]
 mod test_multiset {
     use super::HashMultiSet;
@@ -492,5 +502,19 @@ mod test_multiset {
         assert_eq!(observed, 0xFFFF);
         assert_eq!(observed_twice, 0xFF);
         assert_eq!(observed_thrice, 0xF);
+    }
+
+    #[test]
+    fn test_eq() {
+        let mut s1 = HashMultiSet::new();
+        s1.insert(0);
+        s1.insert(1);
+        s1.insert(1);
+        let mut s2 = HashMultiSet::new();
+        s2.insert(0);
+        s2.insert(1);
+        assert!(s1 != s2);
+        s2.insert(1);
+        assert_eq!(s1, s2);
     }
 }
