@@ -99,6 +99,22 @@ impl<K> HashMultiSet<K> where
         }
     }
 
+    /// Returns true if the multiset contains no elements.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    ///
+    /// let mut multiset = HashMultiSet::new();
+    /// assert!(multiset.is_empty());
+    /// multiset.insert(1);
+    /// assert!(!multiset.is_empty());
+    /// ```
+    pub fn is_empty(&self) -> bool {
+        self.elem_counts.is_empty()
+    }
+
     /// Counts all the elements, including each duplicate.
     ///
     /// # Examples
