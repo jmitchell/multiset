@@ -10,7 +10,8 @@ use std::ops::{Add, Sub};
 #[derive(Clone)]
 pub struct HashMultiSet<K>
 {
-    elem_counts: HashMap<K, usize>
+    elem_counts: HashMap<K, usize>,
+    size: usize,
 }
 
 impl<K> HashMultiSet<K> where
@@ -26,7 +27,10 @@ impl<K> HashMultiSet<K> where
     /// let multiset: HashMultiSet<char> = HashMultiSet::new();
     /// ```
     pub fn new() -> Self {
-        HashMultiSet { elem_counts: HashMap::new() }
+        HashMultiSet {
+            elem_counts: HashMap::new(),
+            size: 0,
+        }
     }
 
     /// Counts all the elements, including each duplicate.
@@ -39,7 +43,7 @@ impl<K> HashMultiSet<K> where
     /// use multiset::HashMultiSet;
     ///
     /// let multiset: HashMultiSet<char> = HashMultiSet::new();
-    /// assert_eq!(0, multiset.total_elements());
+    /// assert_eq!(0, multiset.len());
     /// ```
     ///
     /// A `HashMultiSet` from `vec![1,1,2]` has 3 total elements:
@@ -49,12 +53,10 @@ impl<K> HashMultiSet<K> where
     /// use std::iter::FromIterator;
     ///
     /// let multiset: HashMultiSet<i32> = FromIterator::from_iter(vec![1,1,2]);
-    /// assert_eq!(3, multiset.total_elements());
+    /// assert_eq!(3, multiset.len());
     /// ```
-    pub fn total_elements(&self) -> usize {
-        self.elem_counts
-            .values()
-            .fold(0, |a,b| a + *b)
+    pub fn len(&self) -> usize {
+        self.size
     }
 
     /// Returns all the distinct elements in the `HashMultiSet`.
@@ -114,6 +116,7 @@ impl<K> HashMultiSet<K> where
     /// assert_eq!(3, multiset.count_of(5));
     /// ```
     pub fn insert_times(&mut self, val: K, n: usize) {
+        self.size += n;
         match self.elem_counts.entry(val) {
             Entry::Vacant(view) => {
                 view.insert(n);
@@ -172,9 +175,11 @@ impl<K> HashMultiSet<K> where
             Entry::Occupied(mut view) => {
                 let v = *view.get();
                 if v > n {
+                    self.size -= n;
                     let v = view.get_mut();
                     *v -= n
                 } else {
+                    self.size -= v;
                     let _ = view.remove_entry();
                 };
             },
@@ -200,6 +205,7 @@ impl<K> HashMultiSet<K> where
         match self.elem_counts.entry(val) {
             Entry::Vacant(_) => (),
             Entry::Occupied(view) => {
+                self.size -= *view.get();
                 let _ = view.remove_entry();
             },
         }
