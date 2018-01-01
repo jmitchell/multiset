@@ -7,4 +7,4 @@
 
 mod multiset;
 
-pub use multiset::{HashMultiSet};
+pub use multiset::{HashMultiSet, Iter};
