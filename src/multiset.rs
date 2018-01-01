@@ -1,6 +1,7 @@
 #![warn(missing_docs)]
 
 use std::collections::{HashMap};
+use std::collections::hash_map;
 use std::collections::hash_map::{Entry,Keys};
 use std::hash::{Hash};
 use std::iter::{FromIterator,IntoIterator};
@@ -12,6 +13,45 @@ pub struct HashMultiSet<K>
 {
     elem_counts: HashMap<K, usize>,
     size: usize,
+}
+
+/// An iterator over the items of a `HashMultiSet`.
+///
+/// This `struct` is created by the [`iter`] method on [`HashMultiSet`].
+pub struct Iter<'a, K: 'a> {
+    iter: hash_map::Iter<'a, K, usize>,
+    duplicate: Option<(&'a K, &'a usize)>,
+    duplicate_index: usize,
+}
+
+impl<'a, K> Clone for Iter<'a, K> {
+    fn clone(&self) -> Iter<'a, K> {
+        Iter {
+            iter: self.iter.clone(),
+            duplicate: self.duplicate.clone(),
+            duplicate_index: self.duplicate_index,
+        }
+    }
+}
+impl<'a, K> Iterator for Iter<'a, K> {
+    type Item = &'a K;
+
+    fn next(&mut self) -> Option<&'a K> {
+        if self.duplicate.is_none() {
+            self.duplicate = self.iter.next();
+        }
+        if self.duplicate.is_some() {
+            let (key, count) = self.duplicate.unwrap();
+            self.duplicate_index += 1;
+            if &self.duplicate_index >= count {
+                self.duplicate = None;
+                self.duplicate_index = 0;
+            }
+            Some(key)
+        } else {
+            None
+        }
+    }
 }
 
 impl<K> HashMultiSet<K> where
@@ -30,6 +70,32 @@ impl<K> HashMultiSet<K> where
         HashMultiSet {
             elem_counts: HashMap::new(),
             size: 0,
+        }
+    }
+
+    /// An iterator visiting all elements in arbitrary order, including each duplicate.
+    /// The iterator element type is `&'a K`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    /// let mut multiset = HashMultiSet::new();
+    /// multiset.insert(0);
+    /// multiset.insert(0);
+    /// multiset.insert(1);
+    ///
+    /// // Will print in an arbitrary order.
+    /// for x in multiset.iter() {
+    ///     println!("{}", x);
+    /// }
+    /// assert_eq!(3, multiset.iter().count());
+    /// ```
+    pub fn iter(&self) -> Iter<K> {
+        Iter {
+            iter: self.elem_counts.iter(),
+            duplicate: None,
+            duplicate_index: 0,
         }
     }
 
@@ -331,5 +397,40 @@ impl<A> FromIterator<A> for HashMultiSet<A> where
             multiset.insert(elem);
         }
         multiset
+    }
+}
+
+#[cfg(test)]
+mod test_multiset {
+    use super::HashMultiSet;
+
+    #[test]
+    fn test_iterate() {
+        let mut a = HashMultiSet::new();
+        for i in 0..16 {
+            a.insert(i);
+        }
+        for i in 0..8 {
+            a.insert(i);
+        }
+        for i in 0..4 {
+            a.insert(i);
+        }
+        let mut observed: u16 = 0;
+        let mut observed_twice: u16 = 0;
+        let mut observed_thrice: u16 = 0;
+        for k in a.iter() {
+            let bit = 1 << *k;
+            if observed & bit == 0 {
+                observed |= bit;
+            } else if observed_twice & bit == 0 {
+                observed_twice |= bit;
+            } else if observed_thrice & bit == 0 {
+                observed_thrice |= bit;
+            }
+        }
+        assert_eq!(observed, 0xFFFF);
+        assert_eq!(observed_twice, 0xFF);
+        assert_eq!(observed_thrice, 0xF);
     }
 }
