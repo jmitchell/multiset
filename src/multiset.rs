@@ -199,9 +199,9 @@ impl<K> HashMultiSet<K> where
     /// use multiset::HashMultiSet;
     ///
     /// let mut multiset: HashMultiSet<i32> = HashMultiSet::new();
-    /// assert_eq!(0, multiset.count_of(5));
+    /// assert_eq!(0, multiset.count_of(&5));
     /// multiset.insert(5);
-    /// assert_eq!(1, multiset.count_of(5));
+    /// assert_eq!(1, multiset.count_of(&5));
     /// ```
     pub fn insert(&mut self, val: K) {
         self.insert_times(val, 1);
@@ -217,9 +217,9 @@ impl<K> HashMultiSet<K> where
     /// use multiset::HashMultiSet;
     ///
     /// let mut multiset: HashMultiSet<i32> = HashMultiSet::new();
-    /// assert_eq!(0, multiset.count_of(5));
+    /// assert_eq!(0, multiset.count_of(&5));
     /// multiset.insert_times(5,3);
-    /// assert_eq!(3, multiset.count_of(5));
+    /// assert_eq!(3, multiset.count_of(&5));
     /// ```
     pub fn insert_times(&mut self, val: K, n: usize) {
         self.size += n;
@@ -246,12 +246,13 @@ impl<K> HashMultiSet<K> where
     ///
     /// let mut multiset: HashMultiSet<i32> = HashMultiSet::new();
     /// multiset.insert(5);
-    /// assert_eq!(1, multiset.count_of(5));
-    /// multiset.remove(5);
-    /// assert_eq!(0, multiset.count_of(5));
+    /// assert_eq!(1, multiset.count_of(&5));
+    /// assert!(multiset.remove(&5));
+    /// assert_eq!(0, multiset.count_of(&5));
+    /// assert!(!multiset.remove(&5));
     /// ```
-    pub fn remove(&mut self, val: K) {
-        self.remove_times(val, 1);
+    pub fn remove(&mut self, val: &K) -> bool {
+        self.remove_times(val, 1) > 0
     }
 
     /// Remove an element `n` times. If an element is
@@ -266,30 +267,31 @@ impl<K> HashMultiSet<K> where
     /// use multiset::HashMultiSet;
     ///
     /// let mut multiset: HashMultiSet<i32> = HashMultiSet::new();
-    /// multiset.insert_times(5,3);
-    /// assert!(multiset.count_of(5) == 3);
-    /// multiset.remove_times(5,2);
-    /// assert!(multiset.count_of(5) == 1);
-    /// multiset.remove_times(5,1);
-    /// assert!(multiset.count_of(5) == 0);
-    /// multiset.remove_times(5,1);
-    /// assert!(multiset.count_of(5) == 0);
+    /// multiset.insert_times(5, 3);
+    /// assert!(multiset.count_of(&5) == 3);
+    /// assert!(multiset.remove_times(&5, 2) == 2);
+    /// assert!(multiset.len() == 1);
+    /// assert!(multiset.count_of(&5) == 1);
+    /// assert!(multiset.remove_times(&5, 1) == 1);
+    /// assert!(multiset.len() == 0);
+    /// assert!(multiset.count_of(&5) == 0);
+    /// assert!(multiset.remove_times(&5, 1) == 0);
+    /// assert!(multiset.count_of(&5) == 0);
     /// ```
-    pub fn remove_times(&mut self, val: K, n: usize) {
-        match self.elem_counts.entry(val) {
-            Entry::Vacant(_) => (),
-            Entry::Occupied(mut view) => {
-                let v = *view.get();
-                if v > n {
-                    self.size -= n;
-                    let v = view.get_mut();
-                    *v -= n
-                } else {
-                    self.size -= v;
-                    let _ = view.remove_entry();
-                };
-            },
+    pub fn remove_times(&mut self, val: &K, times: usize) -> usize {
+        {
+            let entry = self.elem_counts.get_mut(val);
+            if entry.is_some() {
+                let count = entry.unwrap();
+                if *count > times {
+                    *count -= times;
+                    self.size -= times;
+                    return times
+                }
+                self.size -= *count;
+            }
         }
+        self.elem_counts.remove(val).unwrap_or(0)
     }
 
     /// Remove all of an element from the multiset.
@@ -303,18 +305,12 @@ impl<K> HashMultiSet<K> where
     ///
     /// let mut multiset: HashMultiSet<i32> = HashMultiSet::new();
     /// multiset.insert_times(5,3);
-    /// assert!(multiset.count_of(5) == 3);
-    /// multiset.remove_all(5);
-    /// assert!(multiset.count_of(5) == 0);
+    /// assert!(multiset.count_of(&5) == 3);
+    /// multiset.remove_all(&5);
+    /// assert!(multiset.count_of(&5) == 0);
     /// ```
-    pub fn remove_all(&mut self, val: K) {
-        match self.elem_counts.entry(val) {
-            Entry::Vacant(_) => (),
-            Entry::Occupied(view) => {
-                self.size -= *view.get();
-                let _ = view.remove_entry();
-            },
-        }
+    pub fn remove_all(&mut self, val: &K) {
+        self.elem_counts.remove(val);
     }
 
     /// Counts the occurrences of `val`.
@@ -329,12 +325,12 @@ impl<K> HashMultiSet<K> where
     /// multiset.insert(0);
     /// multiset.insert(1);
     /// multiset.insert(0);
-    /// assert_eq!(3, multiset.count_of(0));
-    /// assert_eq!(1, multiset.count_of(1));
+    /// assert_eq!(3, multiset.count_of(&0));
+    /// assert_eq!(1, multiset.count_of(&1));
     /// ```
-    pub fn count_of(&self, val: K) -> usize {
+    pub fn count_of(&self, val: &K) -> usize {
         self.elem_counts
-            .get(&val)
+            .get(val)
             .map_or(0, |x| *x)
     }
 }
@@ -356,20 +352,20 @@ impl<T> Add for HashMultiSet<T> where
     /// let lhs: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
     /// let rhs: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
     /// let combined = lhs + rhs;
-    /// assert_eq!(3, combined.count_of(1));
-    /// assert_eq!(1, combined.count_of(2));
-    /// assert_eq!(1, combined.count_of(3));
-    /// assert_eq!(1, combined.count_of(4));
-    /// assert_eq!(0, combined.count_of(5));
+    /// assert_eq!(3, combined.count_of(&1));
+    /// assert_eq!(1, combined.count_of(&2));
+    /// assert_eq!(1, combined.count_of(&3));
+    /// assert_eq!(1, combined.count_of(&4));
+    /// assert_eq!(0, combined.count_of(&5));
     /// ```
     fn add(self, rhs: HashMultiSet<T>) ->  HashMultiSet<T> {
         let mut ret: HashMultiSet<T> = HashMultiSet::new();
         for val in self.distinct_elements() {
-            let count = self.count_of((*val).clone());
+            let count = self.count_of(val);
             ret.insert_times((*val).clone(), count);
         }
         for val in rhs.distinct_elements() {
-            let count = rhs.count_of((*val).clone());
+            let count = rhs.count_of(val);
             ret.insert_times((*val).clone(), count);
         }
         ret
@@ -395,16 +391,16 @@ impl<T> Sub for HashMultiSet<T> where
     /// let lhs: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
     /// let rhs: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
     /// let combined = lhs - rhs;
-    /// assert_eq!(0, combined.count_of(1));
-    /// assert_eq!(1, combined.count_of(2));
-    /// assert_eq!(1, combined.count_of(3));
-    /// assert_eq!(0, combined.count_of(4));
+    /// assert_eq!(0, combined.count_of(&1));
+    /// assert_eq!(1, combined.count_of(&2));
+    /// assert_eq!(1, combined.count_of(&3));
+    /// assert_eq!(0, combined.count_of(&4));
     /// ```
     fn sub(self, rhs: HashMultiSet<T>) ->  HashMultiSet<T> {
         let mut ret = self.clone();
         for val in rhs.distinct_elements() {
-            let count = rhs.count_of((*val).clone());
-            ret.remove_times((*val).clone(), count);
+            let count = rhs.count_of(val);
+            ret.remove_times(val, count);
         }
         ret
     }
@@ -425,9 +421,9 @@ impl<A> FromIterator<A> for HashMultiSet<A> where
     ///
     /// let vals = vec!['h','e','l','l','o',' ','w','o','r','l','d'];
     /// let multiset: HashMultiSet<char> = FromIterator::from_iter(vals);
-    /// assert_eq!(1, multiset.count_of('h'));
-    /// assert_eq!(3, multiset.count_of('l'));
-    /// assert_eq!(0, multiset.count_of('z'));
+    /// assert_eq!(1, multiset.count_of(&'h'));
+    /// assert_eq!(3, multiset.count_of(&'l'));
+    /// assert_eq!(0, multiset.count_of(&'z'));
     /// ```
     fn from_iter<T>(iterable: T) -> HashMultiSet<A> where
         T: IntoIterator<Item=A>
