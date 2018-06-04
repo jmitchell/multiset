@@ -372,6 +372,16 @@ impl<T, U> Add<U> for HashMultiSet<T> where
     U: AsRef<HashMultiSet<T>>
 {
     type Output = HashMultiSet<T>;
+    fn add(self, rhs: U) ->  HashMultiSet<T> {
+        &self + rhs.as_ref()
+    }
+}
+
+impl<'a, T, U> Add<U> for &'a HashMultiSet<T> where
+    T: Eq + Hash + Clone,
+    U: AsRef<HashMultiSet<T>>
+{
+    type Output = HashMultiSet<T>;
 
     /// Combine two `HashMultiSet`s by adding the number of each
     /// distinct element.
@@ -437,6 +447,16 @@ impl<T, U> AddAssign<U> for HashMultiSet<T> where
 }
 
 impl<T, U> Sub<U> for HashMultiSet<T> where
+    T: Eq + Hash + Clone,
+    U: AsRef<HashMultiSet<T>>
+{
+    type Output = HashMultiSet<T>;
+    fn sub(self, rhs: U) ->  HashMultiSet<T> {
+        &self - rhs.as_ref()
+    }
+}
+
+impl<'a, T, U> Sub<U> for &'a HashMultiSet<T> where
     T: Eq + Hash + Clone,
     U: AsRef<HashMultiSet<T>>
 {
