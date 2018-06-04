@@ -361,8 +361,15 @@ impl<K> HashMultiSet<K> where
     }
 }
 
-impl<T> Add for HashMultiSet<T> where
-    T: Eq + Hash + Clone
+impl<T> AsRef<HashMultiSet<T>> for HashMultiSet<T> {
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
+impl<T, U> Add<U> for HashMultiSet<T> where
+    T: Eq + Hash + Clone,
+    U: AsRef<HashMultiSet<T>>
 {
     type Output = HashMultiSet<T>;
 
@@ -384,7 +391,8 @@ impl<T> Add for HashMultiSet<T> where
     /// assert_eq!(1, combined.count_of(4));
     /// assert_eq!(0, combined.count_of(5));
     /// ```
-    fn add(self, rhs: HashMultiSet<T>) ->  HashMultiSet<T> {
+    fn add(self, rhs: U) ->  HashMultiSet<T> {
+        let rhs = rhs.as_ref();
         let mut ret: HashMultiSet<T> = HashMultiSet::new();
         for val in self.distinct_elements() {
             let count = self.count_of((*val).clone());
@@ -398,8 +406,9 @@ impl<T> Add for HashMultiSet<T> where
     }
 }
 
-impl<T> AddAssign for HashMultiSet<T> where
-    T: Eq + Hash + Clone
+impl<T, U> AddAssign<U> for HashMultiSet<T> where
+    T: Eq + Hash + Clone,
+    U: AsRef<HashMultiSet<T>>
 {
     /// Insert the elements of one `HashMultiSet` into another.
     ///
@@ -418,7 +427,8 @@ impl<T> AddAssign for HashMultiSet<T> where
     /// assert_eq!(1, lhs.count_of(4));
     /// assert_eq!(0, lhs.count_of(5));
     /// ```
-    fn add_assign(&mut self, rhs: HashMultiSet<T>) {
+    fn add_assign(&mut self, rhs: U) {
+        let rhs = rhs.as_ref();
         for val in rhs.distinct_elements() {
             let count = rhs.count_of((*val).clone());
             self.insert_times((*val).clone(), count);
@@ -426,8 +436,9 @@ impl<T> AddAssign for HashMultiSet<T> where
     }
 }
 
-impl<T> Sub for HashMultiSet<T> where
-    T: Eq + Hash + Clone
+impl<T, U> Sub<U> for HashMultiSet<T> where
+    T: Eq + Hash + Clone,
+    U: AsRef<HashMultiSet<T>>
 {
     type Output = HashMultiSet<T>;
 
@@ -450,7 +461,8 @@ impl<T> Sub for HashMultiSet<T> where
     /// assert_eq!(1, combined.count_of(3));
     /// assert_eq!(0, combined.count_of(4));
     /// ```
-    fn sub(self, rhs: HashMultiSet<T>) ->  HashMultiSet<T> {
+    fn sub(self, rhs: U) ->  HashMultiSet<T> {
+        let rhs = rhs.as_ref();
         let mut ret = self.clone();
         for val in rhs.distinct_elements() {
             let count = rhs.count_of((*val).clone());
@@ -460,8 +472,9 @@ impl<T> Sub for HashMultiSet<T> where
     }
 }
 
-impl<T> SubAssign for HashMultiSet<T> where
-    T: Eq + Hash + Clone
+impl<T, U> SubAssign<U> for HashMultiSet<T> where
+    T: Eq + Hash + Clone,
+    U: AsRef<HashMultiSet<T>>
 {
     /// Remove the elements of one `HashMultiSet` from another
     /// using `-`.
@@ -480,7 +493,8 @@ impl<T> SubAssign for HashMultiSet<T> where
     /// assert_eq!(1, lhs.count_of(3));
     /// assert_eq!(0, lhs.count_of(4));
     /// ```
-    fn sub_assign(&mut self, rhs: HashMultiSet<T>) {
+    fn sub_assign(&mut self, rhs: U) {
+        let rhs = rhs.as_ref();
         for val in rhs.distinct_elements() {
             let count = rhs.count_of((*val).clone());
             self.remove_times((*val).clone(), count);
