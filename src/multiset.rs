@@ -7,19 +7,18 @@
 // except according to those terms.
 #![warn(missing_docs)]
 
-use std::borrow::{Borrow};
-use std::collections::{HashMap};
+use std::borrow::Borrow;
 use std::collections::hash_map;
-use std::collections::hash_map::{Entry,Keys};
-use std::hash::{Hash};
-use std::iter::{FromIterator,IntoIterator};
-use std::ops::{Add, Sub};
+use std::collections::hash_map::{Entry, Keys};
+use std::collections::HashMap;
 use std::fmt;
+use std::hash::Hash;
+use std::iter::{FromIterator, IntoIterator};
+use std::ops::{Add, Sub};
 
 /// A hash-based multiset.
 #[derive(Clone)]
-pub struct HashMultiSet<K>
-{
+pub struct HashMultiSet<K> {
     elem_counts: HashMap<K, usize>,
     size: usize,
 }
@@ -63,8 +62,9 @@ impl<'a, K> Iterator for Iter<'a, K> {
     }
 }
 
-impl<K> HashMultiSet<K> where
-    K: Eq + Hash
+impl<K> HashMultiSet<K>
+where
+    K: Eq + Hash,
 {
     /// Creates a new empty `HashMultiSet`.
     ///
@@ -140,8 +140,9 @@ impl<K> HashMultiSet<K> where
     /// assert_eq!(set.contains(&4), false);
     /// ```
     pub fn contains<Q: ?Sized>(&self, value: &Q) -> bool
-        where K: Borrow<Q>,
-              Q: Hash + Eq
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq,
     {
         self.elem_counts.contains_key(value)
     }
@@ -192,8 +193,7 @@ impl<K> HashMultiSet<K> where
     /// assert!(!distinct.contains(&3));
     /// ```
     pub fn distinct_elements<'a>(&'a self) -> Keys<'a, K, usize> {
-        self.elem_counts
-            .keys()
+        self.elem_counts.keys()
     }
 
     /// Inserts an element.
@@ -233,11 +233,11 @@ impl<K> HashMultiSet<K> where
         match self.elem_counts.entry(val) {
             Entry::Vacant(view) => {
                 view.insert(n);
-            },
+            }
             Entry::Occupied(mut view) => {
                 let v = view.get_mut();
                 *v += n;
-            },
+            }
         }
     }
 
@@ -293,7 +293,7 @@ impl<K> HashMultiSet<K> where
                 if *count > times {
                     *count -= times;
                     self.size -= times;
-                    return times
+                    return times;
                 }
                 self.size -= *count;
             }
@@ -336,14 +336,13 @@ impl<K> HashMultiSet<K> where
     /// assert_eq!(1, multiset.count_of(&1));
     /// ```
     pub fn count_of(&self, val: &K) -> usize {
-        self.elem_counts
-            .get(val)
-            .map_or(0, |x| *x)
+        self.elem_counts.get(val).map_or(0, |x| *x)
     }
 }
 
-impl<T> Add for HashMultiSet<T> where
-    T: Eq + Hash + Clone
+impl<T> Add for HashMultiSet<T>
+where
+    T: Eq + Hash + Clone,
 {
     type Output = HashMultiSet<T>;
 
@@ -365,7 +364,7 @@ impl<T> Add for HashMultiSet<T> where
     /// assert_eq!(1, combined.count_of(&4));
     /// assert_eq!(0, combined.count_of(&5));
     /// ```
-    fn add(self, rhs: HashMultiSet<T>) ->  HashMultiSet<T> {
+    fn add(self, rhs: HashMultiSet<T>) -> HashMultiSet<T> {
         let mut ret: HashMultiSet<T> = HashMultiSet::new();
         for val in self.distinct_elements() {
             let count = self.count_of(val);
@@ -379,8 +378,9 @@ impl<T> Add for HashMultiSet<T> where
     }
 }
 
-impl<T> Sub for HashMultiSet<T> where
-    T: Eq + Hash + Clone
+impl<T> Sub for HashMultiSet<T>
+where
+    T: Eq + Hash + Clone,
 {
     type Output = HashMultiSet<T>;
 
@@ -403,7 +403,7 @@ impl<T> Sub for HashMultiSet<T> where
     /// assert_eq!(1, combined.count_of(&3));
     /// assert_eq!(0, combined.count_of(&4));
     /// ```
-    fn sub(self, rhs: HashMultiSet<T>) ->  HashMultiSet<T> {
+    fn sub(self, rhs: HashMultiSet<T>) -> HashMultiSet<T> {
         let mut ret = self.clone();
         for val in rhs.distinct_elements() {
             let count = rhs.count_of(val);
@@ -413,8 +413,9 @@ impl<T> Sub for HashMultiSet<T> where
     }
 }
 
-impl<A> FromIterator<A> for HashMultiSet<A> where
-    A: Eq + Hash
+impl<A> FromIterator<A> for HashMultiSet<A>
+where
+    A: Eq + Hash,
 {
     /// Creates a new `HashMultiSet` from the elements in an iterable.
     ///
@@ -432,8 +433,9 @@ impl<A> FromIterator<A> for HashMultiSet<A> where
     /// assert_eq!(3, multiset.count_of(&'l'));
     /// assert_eq!(0, multiset.count_of(&'z'));
     /// ```
-    fn from_iter<T>(iterable: T) -> HashMultiSet<A> where
-        T: IntoIterator<Item=A>
+    fn from_iter<T>(iterable: T) -> HashMultiSet<A>
+    where
+        T: IntoIterator<Item = A>,
     {
         let mut multiset: HashMultiSet<A> = HashMultiSet::new();
         for elem in iterable.into_iter() {
@@ -452,21 +454,17 @@ where
             return false;
         }
 
-        self.elem_counts.iter().all(|(key, count)| {
-            other.contains(key) && other.elem_counts.get(key).unwrap() == count
-        })
+        self.elem_counts
+            .iter()
+            .all(|(key, count)| other.contains(key) && other.elem_counts.get(key).unwrap() == count)
     }
 }
 
-impl<T> Eq for HashMultiSet<T>
-where
-    T: Eq + Hash,
-{
-}
+impl<T> Eq for HashMultiSet<T> where T: Eq + Hash {}
 
 impl<T> fmt::Debug for HashMultiSet<T>
 where
-    T: Eq + Hash + fmt::Debug
+    T: Eq + Hash + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_set().entries(self.iter()).finish()
