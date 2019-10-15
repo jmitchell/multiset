@@ -315,8 +315,10 @@ where
     /// assert!(multiset.count_of(&5) == 3);
     /// multiset.remove_all(&5);
     /// assert!(multiset.count_of(&5) == 0);
+    /// assert!(multiset.len() == 0);
     /// ```
     pub fn remove_all(&mut self, val: &K) {
+        self.size -= self.elem_counts.get(val).unwrap_or(&0);
         self.elem_counts.remove(val);
     }
 
@@ -517,5 +519,42 @@ mod test_multiset {
         assert!(s1 != s2);
         s2.insert(1);
         assert_eq!(s1, s2);
+    }
+
+    #[test]
+    fn test_size() {
+        let mut set = HashMultiSet::new();
+
+        assert_eq!(set.len(), 0);
+        set.insert('a');
+        assert_eq!(set.len(), 1);
+        set.remove(&'a');
+        assert_eq!(set.len(), 0);
+
+        set.insert_times('b', 4);
+        assert_eq!(set.len(), 4);
+        set.insert('b');
+        assert_eq!(set.len(), 5);
+        set.remove_all(&'b');
+        assert_eq!(set.len(), 0);
+
+        set.insert_times('c', 6);
+        assert_eq!(set.len(), 6);
+        set.insert_times('c', 3);
+        assert_eq!(set.len(), 9);
+        set.insert('c');
+        assert_eq!(set.len(), 10);
+        set.insert('d');
+        assert_eq!(set.len(), 11);
+        set.insert_times('d', 3);
+        assert_eq!(set.len(), 14);
+        set.remove_all(&'c');
+        assert_eq!(set.len(), 4);
+        set.remove(&'d');
+        assert_eq!(set.len(), 3);
+        set.remove_times(&'d', 2);
+        assert_eq!(set.len(), 1);
+        set.remove(&'d');
+        assert_eq!(set.len(), 0);
     }
 }
