@@ -108,6 +108,29 @@ where
         }
     }
 
+    /// An iterator visiting all elements in arbitrary order paired with the number of times the
+    /// item appears.
+    /// The iterator element type is `(&'a K, usize)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    /// let mut multiset = HashMultiSet::new();
+    /// multiset.insert(0);
+    /// multiset.insert(0);
+    /// multiset.insert(1);
+    ///
+    /// let mut keys_with_counts: Vec<_> = multiset.iter_counts().collect();
+    /// keys_with_counts.sort(); // Order is arbitrary
+    /// assert_eq!(keys_with_counts, vec![(&0, 2), (&1, 1)]);
+    /// ```
+    pub fn iter_counts(&self) -> IterCounts<K> {
+        IterCounts {
+            iter: self.elem_counts.iter(),
+        }
+    }
+
     /// Returns true if the multiset contains no elements.
     ///
     /// # Examples
@@ -339,6 +362,18 @@ where
     /// ```
     pub fn count_of(&self, val: &K) -> usize {
         self.elem_counts.get(val).map_or(0, |x| *x)
+    }
+}
+
+pub struct IterCounts<'a, K> {
+    iter: hash_map::Iter<'a, K, usize>,
+}
+
+impl<'a, K> Iterator for IterCounts<'a, K> {
+    type Item = (&'a K, usize);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|(key, &count)| (key, count))
     }
 }
 
