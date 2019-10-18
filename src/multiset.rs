@@ -448,6 +448,8 @@ where
     }
 }
 
+/// An iterator over the union of two structs. See [HashMultiSet::union] for
+/// more details.
 pub struct Union<'a, K> {
     set1_iter: hash_map::Iter<'a, K, usize>,
     set2_iter: hash_map::Iter<'a, K, usize>,
@@ -488,6 +490,8 @@ where
     }
 }
 
+/// An iterator over the intersection of two structs. See
+/// [HashMultiSet::intersection] for more details.
 pub struct Intersection<'a, K> {
     set1_iter: hash_map::Iter<'a, K, usize>,
     set2: &'a HashMultiSet<K>,
@@ -518,6 +522,8 @@ where
     }
 }
 
+/// An iterator over the union of two structs. See [HashMultiSet::union] for
+/// more details.
 pub struct UnionCounts<'a, K> {
     set1: &'a HashMultiSet<K>,
     set2: &'a HashMultiSet<K>,
@@ -545,6 +551,8 @@ where
     }
 }
 
+/// An iterator over the intersection of two structs. See
+/// [HashMultiSet::intersection] for more details.
 pub struct IntersectionCounts<'a, K> {
     set2: &'a HashMultiSet<K>,
     set1_iter: hash_map::Iter<'a, K, usize>,

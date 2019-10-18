@@ -15,4 +15,4 @@
 
 mod multiset;
 
-pub use multiset::{HashMultiSet, Iter};
+pub use multiset::{HashMultiSet, Intersection, IntersectionCounts, Iter, Union, UnionCounts};
