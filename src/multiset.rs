@@ -429,13 +429,13 @@ where
     ///
     /// let set1: HashMultiSet<_> = [1, 1, 2].iter().cloned().collect();
     /// let set2: HashMultiSet<_> = [2, 2, 3].iter().cloned().collect();
-    /// let set_union: HashMultiSet<_> = set1
+    /// let set_intersection: HashMultiSet<_> = set1
     ///     .intersection_counts(&set2)
     ///     .map(|(&key, count)| (key, count))
     ///     .collect();
-    /// assert_eq!(set_union.count_of(&1), 0);
-    /// assert_eq!(set_union.count_of(&2), 1);
-    /// assert_eq!(set_union.count_of(&3), 0);
+    /// assert_eq!(set_intersection.count_of(&1), 0);
+    /// assert_eq!(set_intersection.count_of(&2), 1);
+    /// assert_eq!(set_intersection.count_of(&3), 0);
     /// ```
     pub fn intersection_counts<'a>(
         &'a self,
@@ -1031,55 +1031,55 @@ mod test_multiset {
     fn test_intersection_counts() {
         let set1: HashMultiSet<_> = [1, 1].iter().cloned().collect();
         let set2: HashMultiSet<_> = [1, 1, 1].iter().cloned().collect();
-        let set_union: HashMultiSet<_> = set1
+        let set_intersection: HashMultiSet<_> = set1
             .intersection_counts(&set2)
             .map(|(&key, count)| (key, count))
             .collect();
-        assert_eq!(set_union.count_of(&1), 2);
-        assert_eq!(set_union.len(), 2);
+        assert_eq!(set_intersection.count_of(&1), 2);
+        assert_eq!(set_intersection.len(), 2);
 
         let set1: HashMultiSet<_> = [1, 1].iter().cloned().collect();
         let set2: HashMultiSet<_> = [2, 2, 2].iter().cloned().collect();
-        let set_union: HashMultiSet<_> = set1
+        let set_intersection: HashMultiSet<_> = set1
             .intersection_counts(&set2)
             .map(|(&key, count)| (key, count))
             .collect();
-        assert_eq!(set_union.count_of(&1), 0);
-        assert_eq!(set_union.count_of(&2), 0);
-        assert_eq!(set_union.len(), 0);
+        assert_eq!(set_intersection.count_of(&1), 0);
+        assert_eq!(set_intersection.count_of(&2), 0);
+        assert_eq!(set_intersection.len(), 0);
 
         let set1: HashMultiSet<_> = [1, 1, 2].iter().cloned().collect();
         let set2: HashMultiSet<_> = [1, 1, 3].iter().cloned().collect();
-        let set_union: HashMultiSet<_> = set1
+        let set_intersection: HashMultiSet<_> = set1
             .intersection_counts(&set2)
             .map(|(&key, count)| (key, count))
             .collect();
-        assert_eq!(set_union.count_of(&1), 2);
-        assert_eq!(set_union.count_of(&2), 0);
-        assert_eq!(set_union.count_of(&3), 0);
-        assert_eq!(set_union.len(), 2);
+        assert_eq!(set_intersection.count_of(&1), 2);
+        assert_eq!(set_intersection.count_of(&2), 0);
+        assert_eq!(set_intersection.count_of(&3), 0);
+        assert_eq!(set_intersection.len(), 2);
 
         let set1: HashMultiSet<_> = [1, 1, 2, 3].iter().cloned().collect();
         let empty_array: [u32; 0] = [];
         let set2: HashMultiSet<_> = empty_array.iter().cloned().collect();
-        let set_union: HashMultiSet<_> = set1
+        let set_intersection: HashMultiSet<_> = set1
             .intersection_counts(&set2)
             .map(|(&key, count)| (key, count))
             .collect();
-        assert_eq!(set_union.count_of(&1), 0);
-        assert_eq!(set_union.count_of(&2), 0);
-        assert_eq!(set_union.count_of(&3), 0);
-        assert_eq!(set_union.len(), 0);
+        assert_eq!(set_intersection.count_of(&1), 0);
+        assert_eq!(set_intersection.count_of(&2), 0);
+        assert_eq!(set_intersection.count_of(&3), 0);
+        assert_eq!(set_intersection.len(), 0);
 
         let set1: HashMultiSet<_> = [1, 1, 2, 3].iter().cloned().collect();
         let set2: HashMultiSet<_> = [1, 1, 2, 3].iter().cloned().collect();
-        let set_union: HashMultiSet<_> = set1
+        let set_intersection: HashMultiSet<_> = set1
             .intersection_counts(&set2)
             .map(|(&key, count)| (key, count))
             .collect();
-        assert_eq!(set_union.count_of(&1), 2);
-        assert_eq!(set_union.count_of(&2), 1);
-        assert_eq!(set_union.count_of(&3), 1);
-        assert_eq!(set_union.len(), 4);
+        assert_eq!(set_intersection.count_of(&1), 2);
+        assert_eq!(set_intersection.count_of(&2), 1);
+        assert_eq!(set_intersection.count_of(&3), 1);
+        assert_eq!(set_intersection.len(), 4);
     }
 }
