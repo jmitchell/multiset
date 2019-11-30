@@ -63,13 +63,7 @@ where
     /// assert_eq!(3, multiset.iter().count());
     /// ```
     pub fn iter(&self) -> Iter<&K, &usize, hash_map::Iter<K, usize>> {
-        Iter {
-            iter: self.elem_counts.iter(),
-            duplicate: None,
-            duplicate_index: 0,
-            len: self.size,
-            _ghost: std::marker::PhantomData,
-        }
+        Iter::new(self.elem_counts.iter(), self.size)
     }
 
     /// Returns true if the multiset contains no elements.
