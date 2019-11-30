@@ -66,6 +66,7 @@ where
             iter: self.elem_counts.iter(),
             duplicate: None,
             duplicate_index: 0,
+            len: self.size,
             _ghost: std::marker::PhantomData,
         }
     }

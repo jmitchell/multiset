@@ -18,6 +18,7 @@ pub struct Iter<K: Clone, V: Borrow<usize>, InnerIter: Iterator<Item = (K, V)>> 
     pub(crate) iter: InnerIter,
     pub(crate) duplicate: Option<<InnerIter as Iterator>::Item>,
     pub(crate) duplicate_index: usize,
+    pub(crate) len: usize,
     pub(crate) _ghost: PhantomData<*const (K, V)>,
 }
 
@@ -31,6 +32,7 @@ where
             iter: self.iter.clone(),
             duplicate: self.duplicate.clone(),
             duplicate_index: self.duplicate_index,
+            len: self.len,
             _ghost: PhantomData,
         }
     }
@@ -52,9 +54,41 @@ impl<K: Clone, V: Borrow<usize>, InnerIter: Iterator<Item = (K, V)>> Iterator
                 self.duplicate = None;
                 self.duplicate_index = 0;
             }
+            self.len -= 1;
             Some(key)
         } else {
             None
         }
+    }
+
+    fn count(self) -> usize {
+        self.len()
+    }
+
+    fn fold<B, F>(self, init: B, mut f: F) -> B
+    where
+        F: FnMut(B, Self::Item) -> B,
+    {
+        let duplicate_index = self.duplicate_index;
+        self.duplicate
+            .map(move |(val, count)| (val, *count.borrow() - duplicate_index))
+            .into_iter()
+            .chain(self.iter.map(move |(val, count)| (val, *count.borrow())))
+            .fold(init, move |acc, (val, count)| {
+                (0..count).fold(acc, |acc, _| f(acc, val.clone()))
+            })
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let l = self.len();
+        (l, Some(l))
+    }
+}
+
+impl<K: Clone, V: Borrow<usize>, InnerIter: Iterator<Item = (K, V)>> ExactSizeIterator
+    for Iter<K, V, InnerIter>
+{
+    fn len(&self) -> usize {
+        self.len
     }
 }
