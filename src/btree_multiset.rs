@@ -7,77 +7,38 @@
 // except according to those terms.
 #![warn(missing_docs)]
 
+use super::Iter;
+
 use std::borrow::Borrow;
-use std::collections::hash_map;
-use std::collections::hash_map::{Entry, Keys};
-use std::collections::HashMap;
+use std::collections::btree_map::{self, Entry, Keys};
+use std::collections::BTreeMap;
 use std::fmt;
-use std::hash::Hash;
 use std::iter::{FromIterator, IntoIterator};
 use std::ops::{Add, Sub};
 
-/// A hash-based multiset.
 #[derive(Clone)]
-pub struct HashMultiSet<K> {
-    elem_counts: HashMap<K, usize>,
+/// A tree-based multiset.
+pub struct BTreeMultiSet<K> {
+    elem_counts: BTreeMap<K, usize>,
     size: usize,
 }
 
-/// An iterator over the items of a `HashMultiSet`.
-///
-/// This `struct` is created by the [`iter`] method on [`HashMultiSet`].
-pub struct Iter<'a, K: 'a> {
-    iter: hash_map::Iter<'a, K, usize>,
-    duplicate: Option<(&'a K, &'a usize)>,
-    duplicate_index: usize,
-}
-
-impl<'a, K> Clone for Iter<'a, K> {
-    fn clone(&self) -> Iter<'a, K> {
-        Iter {
-            iter: self.iter.clone(),
-            duplicate: self.duplicate.clone(),
-            duplicate_index: self.duplicate_index,
-        }
-    }
-}
-impl<'a, K> Iterator for Iter<'a, K> {
-    type Item = &'a K;
-
-    fn next(&mut self) -> Option<&'a K> {
-        if self.duplicate.is_none() {
-            self.duplicate = self.iter.next();
-        }
-        if self.duplicate.is_some() {
-            let (key, count) = self.duplicate.unwrap();
-            self.duplicate_index += 1;
-            if &self.duplicate_index >= count {
-                self.duplicate = None;
-                self.duplicate_index = 0;
-            }
-            Some(key)
-        } else {
-            None
-        }
-    }
-}
-
-impl<K> HashMultiSet<K>
+impl<K> BTreeMultiSet<K>
 where
-    K: Eq + Hash,
+    K: Ord,
 {
-    /// Creates a new empty `HashMultiSet`.
+    /// Creates a new empty `BTreeMultiSet`.
     ///
     /// # Examples
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     ///
-    /// let multiset: HashMultiSet<char> = HashMultiSet::new();
+    /// let multiset: BTreeMultiSet<char> = BTreeMultiSet::new();
     /// ```
     pub fn new() -> Self {
-        HashMultiSet {
-            elem_counts: HashMap::new(),
+        BTreeMultiSet {
+            elem_counts: BTreeMap::new(),
             size: 0,
         }
     }
@@ -88,8 +49,8 @@ where
     /// # Examples
     ///
     /// ```
-    /// use multiset::HashMultiSet;
-    /// let mut multiset = HashMultiSet::new();
+    /// use multiset::BTreeMultiSet;
+    /// let mut multiset = BTreeMultiSet::new();
     /// multiset.insert(0);
     /// multiset.insert(0);
     /// multiset.insert(1);
@@ -100,11 +61,12 @@ where
     /// }
     /// assert_eq!(3, multiset.iter().count());
     /// ```
-    pub fn iter(&self) -> Iter<K> {
+    pub fn iter(&self) -> Iter<&K, &usize, btree_map::Iter<K, usize>> {
         Iter {
             iter: self.elem_counts.iter(),
             duplicate: None,
             duplicate_index: 0,
+            _ghost: std::marker::PhantomData,
         }
     }
 
@@ -113,9 +75,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     ///
-    /// let mut multiset = HashMultiSet::new();
+    /// let mut multiset = BTreeMultiSet::new();
     /// assert!(multiset.is_empty());
     /// multiset.insert(1);
     /// assert!(!multiset.is_empty());
@@ -126,23 +88,19 @@ where
 
     /// Returns `true` if the multiset contains a value.
     ///
-    /// The value may be any borrowed form of the set's value type, but
-    /// [`Hash`] and [`Eq`] on the borrowed form *must* match those for
-    /// the value type.
-    ///
     /// # Examples
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     ///
-    /// let set: HashMultiSet<_> = [1, 2, 3].iter().cloned().collect();
+    /// let set: BTreeMultiSet<_> = [1, 2, 3].iter().cloned().collect();
     /// assert_eq!(set.contains(&1), true);
     /// assert_eq!(set.contains(&4), false);
     /// ```
     pub fn contains<Q: ?Sized>(&self, value: &Q) -> bool
     where
         K: Borrow<Q>,
-        Q: Hash + Eq,
+        Q: Ord,
     {
         self.elem_counts.contains_key(value)
     }
@@ -151,41 +109,41 @@ where
     ///
     /// # Examples
     ///
-    /// A new empty `HashMultiSet` with 0 total elements:
+    /// A new empty `BTreeMultiSet` with 0 total elements:
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     ///
-    /// let multiset: HashMultiSet<char> = HashMultiSet::new();
+    /// let multiset: BTreeMultiSet<char> = BTreeMultiSet::new();
     /// assert_eq!(0, multiset.len());
     /// ```
     ///
-    /// A `HashMultiSet` from `vec![1,1,2]` has 3 total elements:
+    /// A `BTreeMultiSet` from `vec![1,1,2]` has 3 total elements:
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     /// use std::iter::FromIterator;
     ///
-    /// let multiset: HashMultiSet<i32> = FromIterator::from_iter(vec![1,1,2]);
+    /// let multiset: BTreeMultiSet<i32> = FromIterator::from_iter(vec![1,1,2]);
     /// assert_eq!(3, multiset.len());
     /// ```
     pub fn len(&self) -> usize {
         self.size
     }
 
-    /// Returns all the distinct elements in the `HashMultiSet`.
+    /// Returns all the distinct elements in the `BTreeMultiSet`.
     ///
     /// # Examples
     ///
-    /// A `HashMultiSet` from `vec![1,1,2]` has 2 distinct elements,
+    /// A `BTreeMultiSet` from `vec![1,1,2]` has 2 distinct elements,
     /// namely `1` and `2`, but not `3`:
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     /// use std::collections::HashSet;
     /// use std::iter::FromIterator;
     ///
-    /// let multiset: HashMultiSet<i64> = FromIterator::from_iter(vec![1,1,2]);
+    /// let multiset: BTreeMultiSet<i64> = FromIterator::from_iter(vec![1,1,2]);
     /// let distinct = multiset.distinct_elements().collect::<HashSet<_>>();
     /// assert_eq!(2, distinct.len());
     /// assert!(distinct.contains(&1));
@@ -200,12 +158,12 @@ where
     ///
     /// # Examples
     ///
-    /// Insert `5` into a new `HashMultiSet`:
+    /// Insert `5` into a new `BTreeMultiSet`:
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     ///
-    /// let mut multiset: HashMultiSet<i32> = HashMultiSet::new();
+    /// let mut multiset: BTreeMultiSet<i32> = BTreeMultiSet::new();
     /// assert_eq!(0, multiset.count_of(&5));
     /// multiset.insert(5);
     /// assert_eq!(1, multiset.count_of(&5));
@@ -218,12 +176,12 @@ where
     ///
     /// # Examples
     ///
-    /// Insert three `5`s into a new `HashMultiSet`:
+    /// Insert three `5`s into a new `BTreeMultiSet`:
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     ///
-    /// let mut multiset: HashMultiSet<i32> = HashMultiSet::new();
+    /// let mut multiset: BTreeMultiSet<i32> = BTreeMultiSet::new();
     /// assert_eq!(0, multiset.count_of(&5));
     /// multiset.insert_times(5,3);
     /// assert_eq!(3, multiset.count_of(&5));
@@ -246,12 +204,12 @@ where
     ///
     /// # Examples
     ///
-    /// Remove `5` from a new `HashMultiSet`:
+    /// Remove `5` from a new `BTreeMultiSet`:
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     ///
-    /// let mut multiset: HashMultiSet<i32> = HashMultiSet::new();
+    /// let mut multiset: BTreeMultiSet<i32> = BTreeMultiSet::new();
     /// multiset.insert(5);
     /// assert_eq!(1, multiset.count_of(&5));
     /// assert!(multiset.remove(&5));
@@ -268,12 +226,12 @@ where
     ///
     /// # Examples
     ///
-    /// Remove `5`s from a `HashMultiSet` containing 3 of them.
+    /// Remove `5`s from a `BTreeMultiSet` containing 3 of them.
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     ///
-    /// let mut multiset: HashMultiSet<i32> = HashMultiSet::new();
+    /// let mut multiset: BTreeMultiSet<i32> = BTreeMultiSet::new();
     /// multiset.insert_times(5, 3);
     /// assert!(multiset.count_of(&5) == 3);
     /// assert!(multiset.remove_times(&5, 2) == 2);
@@ -305,12 +263,12 @@ where
     ///
     /// # Examples
     ///
-    /// Remove all `5`s from a `HashMultiSet` containing 3 of them.
+    /// Remove all `5`s from a `BTreeMultiSet` containing 3 of them.
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     ///
-    /// let mut multiset: HashMultiSet<i32> = HashMultiSet::new();
+    /// let mut multiset: BTreeMultiSet<i32> = BTreeMultiSet::new();
     /// multiset.insert_times(5,3);
     /// assert!(multiset.count_of(&5) == 3);
     /// multiset.remove_all(&5);
@@ -327,9 +285,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     ///
-    /// let mut multiset: HashMultiSet<u8> = HashMultiSet::new();
+    /// let mut multiset: BTreeMultiSet<u8> = BTreeMultiSet::new();
     /// multiset.insert(0);
     /// multiset.insert(0);
     /// multiset.insert(1);
@@ -342,23 +300,23 @@ where
     }
 }
 
-impl<T> Add for HashMultiSet<T>
+impl<T> Add for BTreeMultiSet<T>
 where
-    T: Eq + Hash + Clone,
+    T: Ord + Clone,
 {
-    type Output = HashMultiSet<T>;
+    type Output = BTreeMultiSet<T>;
 
-    /// Combine two `HashMultiSet`s by adding the number of each
+    /// Combine two `BTreeMultiSet`s by adding the number of each
     /// distinct element.
     ///
     /// # Examples
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     /// use std::iter::FromIterator;
     ///
-    /// let lhs: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
-    /// let rhs: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
+    /// let lhs: BTreeMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
+    /// let rhs: BTreeMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
     /// let combined = lhs + rhs;
     /// assert_eq!(3, combined.count_of(&1));
     /// assert_eq!(1, combined.count_of(&2));
@@ -366,8 +324,8 @@ where
     /// assert_eq!(1, combined.count_of(&4));
     /// assert_eq!(0, combined.count_of(&5));
     /// ```
-    fn add(self, rhs: HashMultiSet<T>) -> HashMultiSet<T> {
-        let mut ret: HashMultiSet<T> = HashMultiSet::new();
+    fn add(self, rhs: BTreeMultiSet<T>) -> BTreeMultiSet<T> {
+        let mut ret: BTreeMultiSet<T> = BTreeMultiSet::new();
         for val in self.distinct_elements() {
             let count = self.count_of(val);
             ret.insert_times((*val).clone(), count);
@@ -380,13 +338,13 @@ where
     }
 }
 
-impl<T> Sub for HashMultiSet<T>
+impl<T> Sub for BTreeMultiSet<T>
 where
-    T: Eq + Hash + Clone,
+    T: Ord + Clone,
 {
-    type Output = HashMultiSet<T>;
+    type Output = BTreeMultiSet<T>;
 
-    /// Combine two `HashMultiSet`s by removing elements
+    /// Combine two `BTreeMultiSet`s by removing elements
     /// in the second multiset from the first. As with `remove()`
     /// (and set difference), excess elements in the second
     /// multiset are ignored.
@@ -394,18 +352,18 @@ where
     /// # Examples
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     /// use std::iter::FromIterator;
     ///
-    /// let lhs: HashMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
-    /// let rhs: HashMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
+    /// let lhs: BTreeMultiSet<isize> = FromIterator::from_iter(vec![1,2,3]);
+    /// let rhs: BTreeMultiSet<isize> = FromIterator::from_iter(vec![1,1,4]);
     /// let combined = lhs - rhs;
     /// assert_eq!(0, combined.count_of(&1));
     /// assert_eq!(1, combined.count_of(&2));
     /// assert_eq!(1, combined.count_of(&3));
     /// assert_eq!(0, combined.count_of(&4));
     /// ```
-    fn sub(self, rhs: HashMultiSet<T>) -> HashMultiSet<T> {
+    fn sub(self, rhs: BTreeMultiSet<T>) -> BTreeMultiSet<T> {
         let mut ret = self.clone();
         for val in rhs.distinct_elements() {
             let count = rhs.count_of(val);
@@ -415,31 +373,31 @@ where
     }
 }
 
-impl<A> FromIterator<A> for HashMultiSet<A>
+impl<A> FromIterator<A> for BTreeMultiSet<A>
 where
-    A: Eq + Hash,
+    A: Ord,
 {
-    /// Creates a new `HashMultiSet` from the elements in an iterable.
+    /// Creates a new `BTreeMultiSet` from the elements in an iterable.
     ///
     /// # Examples
     ///
     /// Count occurrences of each `char` in `"hello world"`:
     ///
     /// ```
-    /// use multiset::HashMultiSet;
+    /// use multiset::BTreeMultiSet;
     /// use std::iter::FromIterator;
     ///
     /// let vals = vec!['h','e','l','l','o',' ','w','o','r','l','d'];
-    /// let multiset: HashMultiSet<char> = FromIterator::from_iter(vals);
+    /// let multiset: BTreeMultiSet<char> = FromIterator::from_iter(vals);
     /// assert_eq!(1, multiset.count_of(&'h'));
     /// assert_eq!(3, multiset.count_of(&'l'));
     /// assert_eq!(0, multiset.count_of(&'z'));
     /// ```
-    fn from_iter<T>(iterable: T) -> HashMultiSet<A>
+    fn from_iter<T>(iterable: T) -> BTreeMultiSet<A>
     where
         T: IntoIterator<Item = A>,
     {
-        let mut multiset: HashMultiSet<A> = HashMultiSet::new();
+        let mut multiset: BTreeMultiSet<A> = BTreeMultiSet::new();
         for elem in iterable.into_iter() {
             multiset.insert(elem);
         }
@@ -447,11 +405,11 @@ where
     }
 }
 
-impl<T> PartialEq for HashMultiSet<T>
+impl<T> PartialEq for BTreeMultiSet<T>
 where
-    T: Eq + Hash,
+    T: Ord,
 {
-    fn eq(&self, other: &HashMultiSet<T>) -> bool {
+    fn eq(&self, other: &BTreeMultiSet<T>) -> bool {
         if self.len() != other.len() {
             return false;
         }
@@ -462,11 +420,11 @@ where
     }
 }
 
-impl<T> Eq for HashMultiSet<T> where T: Eq + Hash {}
+impl<T> Eq for BTreeMultiSet<T> where T: Ord {}
 
-impl<T> fmt::Debug for HashMultiSet<T>
+impl<T> fmt::Debug for BTreeMultiSet<T>
 where
-    T: Eq + Hash + fmt::Debug,
+    T: Ord + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_set().entries(self.iter()).finish()
@@ -475,11 +433,11 @@ where
 
 #[cfg(test)]
 mod test_multiset {
-    use super::HashMultiSet;
+    use super::BTreeMultiSet;
 
     #[test]
     fn test_iterate() {
-        let mut a = HashMultiSet::new();
+        let mut a = BTreeMultiSet::new();
         for i in 0..16 {
             a.insert(i);
         }
@@ -509,11 +467,11 @@ mod test_multiset {
 
     #[test]
     fn test_eq() {
-        let mut s1 = HashMultiSet::new();
+        let mut s1 = BTreeMultiSet::new();
         s1.insert(0);
         s1.insert(1);
         s1.insert(1);
-        let mut s2 = HashMultiSet::new();
+        let mut s2 = BTreeMultiSet::new();
         s2.insert(0);
         s2.insert(1);
         assert!(s1 != s2);
@@ -523,7 +481,7 @@ mod test_multiset {
 
     #[test]
     fn test_size() {
-        let mut set = HashMultiSet::new();
+        let mut set = BTreeMultiSet::new();
 
         assert_eq!(set.len(), 0);
         set.insert('a');
