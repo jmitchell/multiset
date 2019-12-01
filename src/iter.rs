@@ -184,3 +184,8 @@ impl<K: Clone, V: Borrow<usize>, InnerIter: Iterator<Item = (K, V)> + DoubleEnde
             })
     }
 }
+
+impl<K: Clone, V: Borrow<usize>, InnerIter: Iterator<Item = (K, V)> + std::iter::FusedIterator>
+    std::iter::FusedIterator for Iter<K, V, InnerIter>
+{
+}
