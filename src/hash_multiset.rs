@@ -84,10 +84,6 @@ where
 
     /// Returns `true` if the multiset contains a value.
     ///
-    /// The value may be any borrowed form of the set's value type, but
-    /// [`Hash`] and [`Eq`] on the borrowed form *must* match those for
-    /// the value type.
-    ///
     /// # Examples
     ///
     /// ```
@@ -100,7 +96,7 @@ where
     pub fn contains<Q: ?Sized>(&self, value: &Q) -> bool
     where
         K: Borrow<Q>,
-        Q: Hash + Eq,
+        Q: Eq + Hash,
     {
         self.elem_counts.contains_key(value)
     }
