@@ -18,8 +18,11 @@ use std::iter::{FromIterator, IntoIterator};
 use std::ops::{Add, Sub};
 
 /// A hash-based multiset.
-#[derive(Clone)]
-pub struct HashMultiSet<K> {
+#[derive(Clone, Default, Eq)]
+pub struct HashMultiSet<K>
+where
+    K: Eq + Hash,
+{
     elem_counts: HashMap<K, usize>,
     size: usize,
 }
@@ -146,7 +149,7 @@ where
     /// assert!(distinct.contains(&2));
     /// assert!(!distinct.contains(&3));
     /// ```
-    pub fn distinct_elements<'a>(&'a self) -> Keys<'a, K, usize> {
+    pub fn distinct_elements(&self) -> Keys<K, usize> {
         self.elem_counts.keys()
     }
 
@@ -240,17 +243,13 @@ where
     /// assert!(multiset.count_of(&5) == 0);
     /// ```
     pub fn remove_times(&mut self, val: &K, times: usize) -> usize {
-        {
-            let entry = self.elem_counts.get_mut(val);
-            if entry.is_some() {
-                let count = entry.unwrap();
-                if *count > times {
-                    *count -= times;
-                    self.size -= times;
-                    return times;
-                }
-                self.size -= *count;
+        if let Some(count) = self.elem_counts.get_mut(val) {
+            if *count > times {
+                *count -= times;
+                self.size -= times;
+                return times;
             }
+            self.size -= *count;
         }
         self.elem_counts.remove(val).unwrap_or(0)
     }
@@ -320,17 +319,11 @@ where
     /// assert_eq!(1, combined.count_of(&4));
     /// assert_eq!(0, combined.count_of(&5));
     /// ```
-    fn add(self, rhs: HashMultiSet<T>) -> HashMultiSet<T> {
-        let mut ret: HashMultiSet<T> = HashMultiSet::new();
-        for val in self.distinct_elements() {
-            let count = self.count_of(val);
-            ret.insert_times((*val).clone(), count);
+    fn add(mut self, rhs: HashMultiSet<T>) -> HashMultiSet<T> {
+        for (val, count) in rhs.elem_counts {
+            self.insert_times(val, count);
         }
-        for val in rhs.distinct_elements() {
-            let count = rhs.count_of(val);
-            ret.insert_times((*val).clone(), count);
-        }
-        ret
+        self
     }
 }
 
@@ -359,13 +352,11 @@ where
     /// assert_eq!(1, combined.count_of(&3));
     /// assert_eq!(0, combined.count_of(&4));
     /// ```
-    fn sub(self, rhs: HashMultiSet<T>) -> HashMultiSet<T> {
-        let mut ret = self.clone();
-        for val in rhs.distinct_elements() {
-            let count = rhs.count_of(val);
-            ret.remove_times(val, count);
+    fn sub(mut self, rhs: HashMultiSet<T>) -> HashMultiSet<T> {
+        for (val, count) in rhs.elem_counts {
+            self.remove_times(&val, count);
         }
-        ret
+        self
     }
 }
 
@@ -394,7 +385,7 @@ where
         T: IntoIterator<Item = A>,
     {
         let mut multiset: HashMultiSet<A> = HashMultiSet::new();
-        for elem in iterable.into_iter() {
+        for elem in iterable {
             multiset.insert(elem);
         }
         multiset
@@ -415,8 +406,6 @@ where
             .all(|(key, count)| other.contains(key) && other.elem_counts.get(key).unwrap() == count)
     }
 }
-
-impl<T> Eq for HashMultiSet<T> where T: Eq + Hash {}
 
 impl<T> fmt::Debug for HashMultiSet<T>
 where
