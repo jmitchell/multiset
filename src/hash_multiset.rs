@@ -7,9 +7,10 @@
 // except according to those terms.
 #![warn(missing_docs)]
 
+use super::Iter;
+
 use std::borrow::Borrow;
-use std::collections::hash_map;
-use std::collections::hash_map::{Entry, Keys};
+use std::collections::hash_map::{self, Entry, Keys};
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::Hash;
@@ -24,36 +25,6 @@ where
 {
     elem_counts: HashMap<K, usize>,
     size: usize,
-}
-
-/// An iterator over the items of a `HashMultiSet`.
-///
-/// This `struct` is created by the [`iter`] method on [`HashMultiSet`].
-#[derive(Clone)]
-pub struct Iter<'a, K: 'a> {
-    iter: hash_map::Iter<'a, K, usize>,
-    duplicate: Option<(&'a K, &'a usize)>,
-    duplicate_index: usize,
-}
-
-impl<'a, K> Iterator for Iter<'a, K> {
-    type Item = &'a K;
-
-    fn next(&mut self) -> Option<&'a K> {
-        if self.duplicate.is_none() {
-            self.duplicate = self.iter.next();
-        }
-        if let Some((key, count)) = self.duplicate {
-            self.duplicate_index += 1;
-            if self.duplicate_index >= *count {
-                self.duplicate = None;
-                self.duplicate_index = 0;
-            }
-            Some(key)
-        } else {
-            None
-        }
-    }
 }
 
 impl<K> HashMultiSet<K>
@@ -94,12 +65,8 @@ where
     /// }
     /// assert_eq!(3, multiset.iter().count());
     /// ```
-    pub fn iter(&self) -> Iter<K> {
-        Iter {
-            iter: self.elem_counts.iter(),
-            duplicate: None,
-            duplicate_index: 0,
-        }
+    pub fn iter(&self) -> Iter<&K, &usize, hash_map::Iter<K, usize>> {
+        Iter::new(self.elem_counts.iter(), self.size)
     }
 
     /// Returns true if the multiset contains no elements.
@@ -120,10 +87,6 @@ where
 
     /// Returns `true` if the multiset contains a value.
     ///
-    /// The value may be any borrowed form of the set's value type, but
-    /// [`Hash`] and [`Eq`] on the borrowed form *must* match those for
-    /// the value type.
-    ///
     /// # Examples
     ///
     /// ```
@@ -136,7 +99,7 @@ where
     pub fn contains<Q: ?Sized>(&self, value: &Q) -> bool
     where
         K: Borrow<Q>,
-        Q: Hash + Eq,
+        Q: Eq + Hash,
     {
         self.elem_counts.contains_key(value)
     }

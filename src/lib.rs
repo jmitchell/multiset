@@ -13,6 +13,10 @@
 //! permit duplicates. Consequently, they're useful for maintaining a
 //! count of distinct values.
 
-mod multiset;
+mod btree_multiset;
+mod hash_multiset;
+mod iter;
 
-pub use multiset::{HashMultiSet, Iter};
+pub use btree_multiset::BTreeMultiSet;
+pub use hash_multiset::HashMultiSet;
+pub use iter::Iter;

@@ -6,3 +6,6 @@ description = "Multisets/bags"
 keywords = ["multiset","bag","data-structure","collection","count"]
 license = "MIT/Apache-2.0"
 authors = ["Jake Mitchell <jacob.d.mitchell@gmail.com>"]
+
+[dev-dependencies]
+quickcheck = "0.9.1"
