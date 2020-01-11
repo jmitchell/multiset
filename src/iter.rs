@@ -14,6 +14,7 @@ use std::marker::PhantomData;
 ///
 /// This `struct` is created by the [`iter`](super::HashMultiSet::iter) method on
 /// [`HashMultiSet`](super::HashMultiSet) or [`BTreeMultiSet`](super::BTreeMultiSet).
+#[derive(Clone)]
 pub struct Iter<K: Clone, V: Borrow<usize>, InnerIter: Iterator<Item = (K, V)>> {
     pub(crate) iter: InnerIter,
     pub(crate) duplicate: Option<<InnerIter as Iterator>::Item>,
@@ -35,24 +36,6 @@ impl<K: Clone, V: Borrow<usize>, InnerIter: Iterator<Item = (K, V)> + ExactSizeI
             duplicate_back: None,
             duplicate_index_back: 0,
             len,
-            _ghost: PhantomData,
-        }
-    }
-}
-
-impl<K: Clone, V: Borrow<usize>, InnerIter: Iterator<Item = (K, V)> + Clone> Clone
-    for Iter<K, V, InnerIter>
-where
-    <InnerIter as Iterator>::Item: Clone,
-{
-    fn clone(&self) -> Iter<K, V, InnerIter> {
-        Iter {
-            iter: self.iter.clone(),
-            duplicate: self.duplicate.clone(),
-            duplicate_index: self.duplicate_index,
-            duplicate_back: self.duplicate_back.clone(),
-            duplicate_index_back: self.duplicate_index_back,
-            len: self.len,
             _ghost: PhantomData,
         }
     }
