@@ -76,6 +76,39 @@ where
         }
     }
 
+    /// Creates an empty `HashMultiSet` with at least the specified capacity.
+    ///
+    /// The hash multi-set will be able to hold at least `capacity` elements without
+    /// reallocating. This method is allowed to allocate for more elements than
+    /// `capacity`. If `capacity` is 0, the hash set will not allocate.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    /// let multiset: HashMultiSet<i32> = HashMultiSet::with_capacity(10);
+    /// assert!(multiset.capacity() >= 10);
+    /// ```
+    pub fn with_capacity(capacity: usize) -> Self {
+        HashMultiSet {
+            elem_counts: HashMap::with_capacity(capacity),
+            size: 0,
+        }
+    }
+
+    /// Returns the number of elements the set can hold without reallocating.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use multiset::HashMultiSet;
+    /// let multiset: HashMultiSet<i32> = HashMultiSet::with_capacity(100);
+    /// assert!(multiset.capacity() >= 100);
+    /// ```
+    pub fn capacity(&self) -> usize {
+        self.elem_counts.capacity()
+    }
+
     /// An iterator visiting all elements in arbitrary order, including each duplicate.
     /// The iterator element type is `&'a K`.
     ///
